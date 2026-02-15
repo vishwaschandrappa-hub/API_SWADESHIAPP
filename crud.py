@@ -117,3 +117,63 @@ def get_telemetry(db: Session, vehicle_id: str, limit: int = 100):
     return db.query(sql_models.TelemetryLog).filter(
         sql_models.TelemetryLog.vehicle_id == vehicle_id
     ).order_by(sql_models.TelemetryLog.timestamp.desc()).limit(limit).all()
+
+def get_insights(db: Session, vehicle_id: str):
+    from datetime import datetime, timedelta
+    
+    # Calculate date 7 days ago
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    
+    # Fetch logs
+    logs = db.query(sql_models.TelemetryLog).filter(
+        sql_models.TelemetryLog.vehicle_id == vehicle_id,
+        sql_models.TelemetryLog.timestamp >= seven_days_ago
+    ).all()
+    
+    # Process logs
+    daily_speeds = {}
+    daily_battery = {}
+    
+    for log in logs:
+        # Normalize to day index (0-6 relative to week, or strict weekday)
+        # Using weekday(): 0=Mon, 6=Sun
+        day_idx = log.timestamp.weekday()
+        
+        if day_idx not in daily_speeds: daily_speeds[day_idx] = []
+        daily_speeds[day_idx].append(log.speed)
+        
+        if log.battery_level is not None:
+             if day_idx not in daily_battery: daily_battery[day_idx] = []
+             daily_battery[day_idx].append(log.battery_level)
+             
+    # Aggregate
+    speed_points = []
+    battery_points = []
+    
+    # We want to return data for 0..6 (Mon..Sun)
+    for i in range(7):
+        # Speed: Avg
+        if i in daily_speeds:
+            avg = sum(daily_speeds[i]) / len(daily_speeds[i])
+            speed_points.append({"x": i, "y": round(avg, 1)})
+        else:
+            speed_points.append({"x": i, "y": 0})
+            
+        # Battery: Usage (Max - Min)
+        if i in daily_battery and daily_battery[i]:
+            usage = max(daily_battery[i]) - min(daily_battery[i])
+            battery_points.append({"x": i, "y": round(usage, 1)})
+        else:
+            battery_points.append({"x": i, "y": 0})
+            
+    # Mock Score
+    score = 87
+    label = "Excellent"
+    
+    return {
+        "vehicle_id": vehicle_id,
+        "speed_history": speed_points,
+        "battery_usage": battery_points,
+        "driving_score": score,
+        "score_label": label
+    }

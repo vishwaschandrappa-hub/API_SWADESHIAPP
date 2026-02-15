@@ -8,7 +8,8 @@ from datetime import datetime
 
 from models import (
     VehicleTelemetry, Alert, Vehicle, UserProfile, 
-    Trip, TripPoint, UserCreate, UserLogin
+    Trip, TripPoint, UserCreate, UserLogin,
+    InsightsResponse
 )
 from ai_engine import AIEngine
 from dummy_data import populate_dummy_data
@@ -101,6 +102,10 @@ def create_telemetry(telemetry: VehicleTelemetry, db: Session = Depends(get_db))
 @app.get("/telemetry/{vehicle_id}")
 def get_telemetry(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_telemetry(db, vehicle_id, limit)
+
+@app.get("/insights/{vehicle_id}", response_model=InsightsResponse)
+def get_insights(vehicle_id: str, db: Session = Depends(get_db)):
+    return crud.get_insights(db, vehicle_id)
 
 # --- User & Vehicle ---
 

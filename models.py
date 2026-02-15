@@ -77,3 +77,15 @@ class Trip(BaseModel):
     score_color: Optional[str] = None # Hex code
     route_points: List[TripPoint] = []
     status: str = "COMPLETED" # ACTIVE, COMPLETED
+
+# Insights Models
+class ChartPoint(BaseModel):
+    x: int
+    y: float
+
+class InsightsResponse(BaseModel):
+    vehicle_id: str
+    speed_history: List[ChartPoint]
+    battery_usage: List[ChartPoint]
+    driving_score: int
+    score_label: str
