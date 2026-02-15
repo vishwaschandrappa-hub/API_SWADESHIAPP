@@ -8,6 +8,7 @@ import requests
 import json
 from datetime import datetime
 import random
+# https://api-swadeshiapp.onrender.com
 
 BASE_URL = "https://api-swadeshiapp.onrender.com"
 # BASE_URL = "http://localhost:8000"  # Uncomment for local

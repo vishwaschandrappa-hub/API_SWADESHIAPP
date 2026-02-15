@@ -96,7 +96,13 @@ async def websocket_endpoint(websocket: WebSocket, vehicle_id: str):
         manager.disconnect(websocket)
 
 @app.post("/telemetry")
-def create_telemetry(telemetry: VehicleTelemetry, db: Session = Depends(get_db)):
+async def create_telemetry(telemetry: VehicleTelemetry, db: Session = Depends(get_db)):
+    # Broadcast to WebSocket clients
+    await manager.broadcast(json.dumps({
+        "type": "telemetry",
+        "data": telemetry.dict(exclude_none=True, by_alias=True)
+    }, default=str))
+
     return crud.create_telemetry(db, telemetry)
 
 @app.get("/telemetry/{vehicle_id}")
