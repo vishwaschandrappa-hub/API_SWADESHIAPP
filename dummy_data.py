@@ -11,12 +11,14 @@ def populate_dummy_data(db: Session):
         return
 
     # User
-    user = models.UserProfile(
+    # User
+    user = models.UserCreate(
         user_id="user_123",
         name="Vishwas C",
         email="vishwas@example.com",
         phone="+91 98765 43210",
-        avatar_url="https://i.pravatar.cc/300"
+        avatar_url="https://i.pravatar.cc/300",
+        password="password123"
     )
     crud.create_user(db, user)
 
