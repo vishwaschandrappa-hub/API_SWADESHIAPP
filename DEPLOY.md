@@ -33,3 +33,10 @@ To run the server on your machine:
     *Note: If you are running from the root folder, use `uvicorn backend.main:app --reload`*
 
 API Docs will be available at: http://127.0.0.1:8000/docs
+
+## ❓ FAQ
+
+### Where does `$PORT` come from?
+When deploying to Render (or other cloud providers), the platform automatically sets the `PORT` environment variable to the port your service should listen on. The command `$PORT` (or `${PORT}`) allows your application to bind to this dynamically assigned port.
+
+**When running locally**, `uvicorn` defaults to port `8000` if no port is specified, which works perfectly for development. You don't need to set `$PORT` manually on your machine.
