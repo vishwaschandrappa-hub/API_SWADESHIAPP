@@ -41,6 +41,15 @@ def create_vehicle(db: Session, vehicle: models.Vehicle):
     db.refresh(db_vehicle)
     return db_vehicle
 
+def update_vehicle(db: Session, vehicle_id: str, vehicle_update: dict):
+    db_vehicle = db.query(sql_models.Vehicle).filter(sql_models.Vehicle.vehicle_id == vehicle_id).first()
+    if db_vehicle:
+        for key, value in vehicle_update.items():
+            setattr(db_vehicle, key, value)
+        db.commit()
+        db.refresh(db_vehicle)
+    return db_vehicle
+
 def delete_vehicle(db: Session, vehicle_id: str):
     db_vehicle = db.query(sql_models.Vehicle).filter(sql_models.Vehicle.vehicle_id == vehicle_id).first()
     if db_vehicle:
@@ -86,3 +95,25 @@ def create_trip(db: Session, trip: models.Trip):
     db.commit()
     db.refresh(db_trip)
     return db_trip
+
+def create_telemetry(db: Session, telemetry: models.VehicleTelemetry):
+    # Only store fields that exist in sql_models.TelemetryLog
+    telemetry_data = {
+        "vehicle_id": telemetry.vehicle_id,
+        "timestamp": telemetry.timestamp,
+        "speed": telemetry.speed,
+        "latitude": telemetry.latitude,
+        "longitude": telemetry.longitude,
+        "battery_level": telemetry.battery_level
+    }
+    
+    db_telemetry = sql_models.TelemetryLog(**telemetry_data)
+    db.add(db_telemetry)
+    db.commit()
+    db.refresh(db_telemetry)
+    return db_telemetry
+
+def get_telemetry(db: Session, vehicle_id: str, limit: int = 100):
+    return db.query(sql_models.TelemetryLog).filter(
+        sql_models.TelemetryLog.vehicle_id == vehicle_id
+    ).order_by(sql_models.TelemetryLog.timestamp.desc()).limit(limit).all()

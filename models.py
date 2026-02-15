@@ -14,7 +14,7 @@ class VehicleTelemetry(BaseModel):
     rpm: Optional[float] = None
     latitude: float
     longitude: float
-    fuel_level: float  # percentage
+    fuel_level: Optional[float] = None  # percentage
     battery_level: Optional[float] = None # For EVs
     engine_temp: Optional[float] = None
     tire_pressure: Optional[float] = None

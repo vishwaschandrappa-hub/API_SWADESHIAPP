@@ -93,6 +93,14 @@ async def websocket_endpoint(websocket: WebSocket, vehicle_id: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+@app.post("/telemetry")
+def create_telemetry(telemetry: VehicleTelemetry, db: Session = Depends(get_db)):
+    return crud.create_telemetry(db, telemetry)
+
+@app.get("/telemetry/{vehicle_id}")
+def get_telemetry(vehicle_id: str, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_telemetry(db, vehicle_id, limit)
+
 # --- User & Vehicle ---
 
 @app.get("/user/{user_id}", response_model=UserProfile)
@@ -141,6 +149,13 @@ def delete_vehicle(vehicle_id: str, db: Session = Depends(get_db)):
          raise HTTPException(status_code=404, detail="Vehicle not found")
     return {"status": "success", "message": "Vehicle deleted"}
 
+@app.put("/vehicle/{vehicle_id}", response_model=Vehicle)
+def update_vehicle(vehicle_id: str, vehicle_update: Dict, db: Session = Depends(get_db)):
+    db_vehicle = crud.update_vehicle(db, vehicle_id, vehicle_update)
+    if not db_vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    return db_vehicle
+
 # --- Alerts ---
 
 @app.get("/alerts/{vehicle_id}", response_model=List[Alert])
@@ -153,6 +168,10 @@ def action_alert(alert_id: str, db: Session = Depends(get_db)):
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"status": "success", "message": "Alert marked as actioned"}
+
+@app.post("/alert", response_model=Alert)
+def create_alert(alert: Alert, db: Session = Depends(get_db)):
+    return crud.create_alert(db, alert)
 
 # --- Trips ---
 
