@@ -19,6 +19,8 @@ class VehicleTelemetry(BaseModel):
     engine_temp: Optional[float] = None
     tire_pressure: Optional[float] = None
     accelerometer: Optional[AccelerometerData] = None
+    # Computed/Optional fields for UI
+    is_engine_on: Optional[bool] = None # Populated by backend if needed, or derived on frontend
 
 class Alert(BaseModel):
     alert_id: str
