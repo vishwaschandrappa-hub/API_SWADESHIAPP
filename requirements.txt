@@ -3,7 +3,7 @@ uvicorn
 pandas
 scikit-learn
 pydantic
-
+bcrypt==3.2.2
 sqlalchemy
 passlib[bcrypt]
 python-multipart
