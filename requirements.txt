@@ -3,5 +3,7 @@ uvicorn
 pandas
 scikit-learn
 pydantic
-numexpr
+
 sqlalchemy
+passlib[bcrypt]
+python-multipart

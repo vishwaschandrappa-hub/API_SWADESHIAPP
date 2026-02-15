@@ -3,11 +3,29 @@ import sql_models
 import models
 import json
 
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
 def get_user(db: Session, user_id: str):
     return db.query(sql_models.User).filter(sql_models.User.user_id == user_id).first()
 
-def create_user(db: Session, user: models.UserProfile):
-    db_user = sql_models.User(**user.dict())
+def get_user_by_phone(db: Session, phone: str):
+    return db.query(sql_models.User).filter(sql_models.User.phone == phone).first()
+
+def create_user(db: Session, user: models.UserCreate):
+    hashed_password = get_password_hash(user.password)
+    # Exclude password from dict, add hashed_password
+    user_data = user.dict()
+    del user_data['password']
+    
+    db_user = sql_models.User(**user_data, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -21,6 +39,13 @@ def create_vehicle(db: Session, vehicle: models.Vehicle):
     db.add(db_vehicle)
     db.commit()
     db.refresh(db_vehicle)
+    return db_vehicle
+
+def delete_vehicle(db: Session, vehicle_id: str):
+    db_vehicle = db.query(sql_models.Vehicle).filter(sql_models.Vehicle.vehicle_id == vehicle_id).first()
+    if db_vehicle:
+        db.delete(db_vehicle)
+        db.commit()
     return db_vehicle
 
 def get_alerts(db: Session, vehicle_id: str, actioned: bool = None):

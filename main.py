@@ -6,7 +6,10 @@ import asyncio
 import json
 from datetime import datetime
 
-from models import VehicleTelemetry, Alert, Vehicle, UserProfile, Trip, TripPoint
+from models import (
+    VehicleTelemetry, Alert, Vehicle, UserProfile, 
+    Trip, TripPoint, UserCreate, UserLogin
+)
 from ai_engine import AIEngine
 from dummy_data import populate_dummy_data
 from database import SessionLocal, engine, Base, get_db
@@ -100,8 +103,25 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
     return db_user
 
 @app.post("/user", response_model=UserProfile)
-def create_new_user(user: UserProfile, db: Session = Depends(get_db)):
+def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db, user)
+
+@app.post("/auth/register", response_model=UserProfile)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_phone(db, user.phone)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
+    return crud.create_user(db, user)
+
+@app.post("/auth/login", response_model=UserProfile)
+def login(data: UserLogin, db: Session = Depends(get_db)):
+    user = crud.get_user_by_phone(db, data.phone)
+    if not user:
+        # Generic error message or specific as requested ("user not found")
+        raise HTTPException(status_code=404, detail="User not found")
+    if not crud.verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    return user
 
 @app.get("/vehicle/{vehicle_id}", response_model=Vehicle)
 def get_vehicle(vehicle_id: str, db: Session = Depends(get_db)):
@@ -113,6 +133,13 @@ def get_vehicle(vehicle_id: str, db: Session = Depends(get_db)):
 @app.post("/vehicle", response_model=Vehicle)
 def create_new_vehicle(vehicle: Vehicle, db: Session = Depends(get_db)):
     return crud.create_vehicle(db, vehicle)
+
+@app.delete("/vehicle/{vehicle_id}")
+def delete_vehicle(vehicle_id: str, db: Session = Depends(get_db)):
+    vehicle = crud.delete_vehicle(db, vehicle_id)
+    if not vehicle:
+         raise HTTPException(status_code=404, detail="Vehicle not found")
+    return {"status": "success", "message": "Vehicle deleted"}
 
 # --- Alerts ---
 

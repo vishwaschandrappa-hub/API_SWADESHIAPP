@@ -44,12 +44,22 @@ class Vehicle(BaseModel):
     insurance_expiry: Optional[str] = None
     last_service: Optional[str] = None
 
-class UserProfile(BaseModel):
+class UserBase(BaseModel):
     user_id: str
     name: str
     email: str
     phone: str
     avatar_url: Optional[str] = None
+
+class UserProfile(UserBase):
+    vehicles: List[Vehicle] = []
+
+class UserCreate(UserBase):
+    password: str
+
+class UserLogin(BaseModel):
+    phone: str
+    password: str
 
 class TripPoint(BaseModel):
     lat: float

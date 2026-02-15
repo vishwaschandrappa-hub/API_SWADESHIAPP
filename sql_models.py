@@ -9,8 +9,9 @@ class User(Base):
     user_id = Column(String, primary_key=True, index=True)
     name = Column(String)
     email = Column(String, unique=True, index=True)
-    phone = Column(String)
+    phone = Column(String, unique=True, index=True)
     avatar_url = Column(String, nullable=True)
+    hashed_password = Column(String, nullable=False, default="not_set") # Default for migration safety, though we will wipe DB
 
     vehicles = relationship("Vehicle", back_populates="owner")
 
