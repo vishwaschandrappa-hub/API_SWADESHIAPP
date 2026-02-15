@@ -46,6 +46,7 @@ def startup_event():
     db = SessionLocal()
     populate_dummy_data(db)
     db.close()
+    print("Database initialized") # Trigger redeploy
 
 @app.get("/")
 def read_root():
