@@ -9,7 +9,7 @@ The backend is configured for easy deployment on **Render.com**.
 3.  Click **New +** -> **Web Service**.
 4.  Connect your GitHub repository.
 5.  Render will automatically detect `render.yaml` if it's in the root, but since it's in a subfolder, you might need to configure manually:
-    *   **Root Directory**: `backend` (Important!)
+    *   **Root Directory**: Leave empty (since your repo starts inside `backend`)
     *   **Build Command**: `pip install -r requirements.txt`
     *   **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
     *   **Runtime**: Python 3
