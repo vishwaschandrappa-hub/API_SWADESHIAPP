@@ -24,20 +24,34 @@ app = FastAPI(title="Swadeshi Smart Vehicle Backend")
 ai_engine = AIEngine()
 
 # Active WebSocket Connections
+# Active WebSocket Connections
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        # Map vehicle_id -> List[WebSocket]
+        self.active_connections: Dict[str, List[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, vehicle_id: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        if vehicle_id not in self.active_connections:
+            self.active_connections[vehicle_id] = []
+        self.active_connections[vehicle_id].append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, websocket: WebSocket, vehicle_id: str):
+        if vehicle_id in self.active_connections:
+            if websocket in self.active_connections[vehicle_id]:
+                self.active_connections[vehicle_id].remove(websocket)
+            if not self.active_connections[vehicle_id]:
+                del self.active_connections[vehicle_id]
 
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+    async def broadcast_to_vehicle(self, vehicle_id: str, message: str):
+        if vehicle_id in self.active_connections:
+            # Create a copy to iterate safely in case of disconnects during iteration
+            for connection in self.active_connections[vehicle_id][:]:
+                try:
+                    await connection.send_text(message)
+                except RuntimeError:
+                    # Connection might be closed already
+                    pass
 
 manager = ConnectionManager()
 
@@ -68,14 +82,14 @@ async def ingest_telemetry(data: VehicleTelemetry, db: Session = Depends(get_db)
     for alert in new_alerts:
         crud.create_alert(db, alert)
     
-    # Broadcast to WebSocket clients
-    await manager.broadcast(json.dumps({
+    # Broadcast to WebSocket clients subscribed to this vehicle
+    await manager.broadcast_to_vehicle(data.vehicle_id, json.dumps({
         "type": "telemetry",
         "data": data.dict(exclude_none=True, by_alias=True)
     }, default=str))
 
     if new_alerts:
-        await manager.broadcast(json.dumps({
+        await manager.broadcast_to_vehicle(data.vehicle_id, json.dumps({
             "type": "alert",
             "data": [a.dict(default=str) for a in new_alerts]
         }, default=str))
@@ -88,17 +102,17 @@ async def ingest_telemetry(data: VehicleTelemetry, db: Session = Depends(get_db)
 
 @app.websocket("/ws/telemetry/{vehicle_id}")
 async def websocket_endpoint(websocket: WebSocket, vehicle_id: str):
-    await manager.connect(websocket)
+    await manager.connect(websocket, vehicle_id)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, vehicle_id)
 
 @app.post("/telemetry")
 async def create_telemetry(telemetry: VehicleTelemetry, db: Session = Depends(get_db)):
-    # Broadcast to WebSocket clients
-    await manager.broadcast(json.dumps({
+    # Broadcast to WebSocket clients subscribed to this vehicle
+    await manager.broadcast_to_vehicle(telemetry.vehicle_id, json.dumps({
         "type": "telemetry",
         "data": telemetry.dict(exclude_none=True, by_alias=True)
     }, default=str))
