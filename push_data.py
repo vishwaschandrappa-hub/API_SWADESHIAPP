@@ -78,6 +78,8 @@ def main():
             engine_temp = 85 + random.uniform(-5, 10)
 
             # Create Telemetry Payload
+            # Ideally fuel_level should be optional, but old backend requires float.
+            # We send 0.0 instead of None to support old backend fallback.
             telemetry = {
                 "vehicle_id": vid,
                 "timestamp": datetime.now().isoformat(),
@@ -85,16 +87,34 @@ def main():
                 "latitude": lat,
                 "longitude": lng,
                 "battery_level": round(battery, 1) if curr_vehicle['fuel_type'] == 'ELECTRIC' else None,
-                "fuel_level": round(fuel, 1) if curr_vehicle['fuel_type'] != 'ELECTRIC' else None,
-                "engine_temp": round(engine_temp, 1)
+                "fuel_level": round(fuel, 1) if curr_vehicle['fuel_type'] != 'ELECTRIC' else 0.0, 
+                "engine_temp": round(engine_temp, 1),
+                # Add dummy required fields for old backend if needed
+                "rpm": 2000.0,
+                "tire_pressure": 32.0,
+                "location": f"{lat},{lng}"  # Old backend liked string location
             }
 
             # Send Telemetry
-            resp = requests.post(f"{BASE_URL}/telemetry", json=telemetry)
-            if resp.status_code == 200:
-                print(f"📡 Sent Telemetry: Speed={telemetry['speed']} km/h, Battery={telemetry['battery_level']}%")
-            else:
-                print(f"⚠️ Telemetry Error: {resp.status_code}")
+            try:
+                resp = requests.post(f"{BASE_URL}/telemetry", json=telemetry)
+                if resp.status_code == 200:
+                    print(f"📡 Sent to /telemetry: Speed={telemetry['speed']} km/h")
+                elif resp.status_code == 404:
+                    # Fallback to old endpoint
+                    print("⚠️ /telemetry not found (deployment pending?), trying /ingest/telemetry...")
+                    resp = requests.post(f"{BASE_URL}/ingest/telemetry", json=telemetry)
+                    if resp.status_code == 200 or resp.status_code == 422: # 422 might be schema mismatch but let's see
+                        if resp.status_code == 200:
+                             print(f"📡 Sent to /ingest/telemetry: Speed={telemetry['speed']} km/h")
+                        else:
+                             print(f"⚠️ /ingest/telemetry failed: {resp.text}")
+                    else:
+                        print(f"⚠️ Telemetry Error: {resp.status_code}")
+                else:
+                    print(f"⚠️ Telemetry Error: {resp.status_code} - {resp.text}")
+            except Exception as e:
+                print(f"⚠️ Connection Error: {e}")
 
             # Occasionally send Alert (10% chance)
             if random.random() < 0.05:
